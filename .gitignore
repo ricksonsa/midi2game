@@ -1,0 +1,82 @@
+# Ignore build results
+bin/
+obj/
+
+# User-specific files
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# VS Code
+.vscode/
+
+# Visual Studio specific
+.vs/
+Generated_Code/
+
+# Build results
+*.exe
+*.dll
+*.log
+*.pdb
+
+# NuGet packages
+*.nupkg
+packages/
+*.snupkg
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# DotCover
+.idea/
+*.dotCover
+
+# Rider
+.idea/
+
+# Mac stuff
+.DS_Store
+
+# Windows thumbnail cache
+Thumbs.db
+
+# ReSharper
+_ReSharper*/
+*.DotSettings.user
+
+# JetBrains Rider
+.idea/
+
+# Rider caches
+.idea/
+.idea/*
+
+# Backup files
+*.bak
+
+# Logs
+*.log
+
+# Test results
+TestResults/
+*.trx
+*.coverage
+*.coveragexml
+
+# Publish
+publish/
+*.publish.xml
+
+# Local secrets
+secrets.json
+appsettings.*.local.json
+
+# Temporary files
+*.tmp
+*.temp
+*.dbmdl
+
+# NAudio native libraries (if any copied manually)
+NAudioNativeLibs/
