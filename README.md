@@ -25,3 +25,11 @@ A WinForms C# application that plays MIDI files by simulating keyboard input, ma
 
 ```bash
 git clone https://github.com/ricksonsa/midi2game
+
+
+Support the Project
+If you find this project useful or would like to help me improve it further, your support on Patreon makes a big difference. Even small contributions helps a lot.
+
+Thanks again for your support and feedback
+
+https://www.patreon.com/ricksonsa
