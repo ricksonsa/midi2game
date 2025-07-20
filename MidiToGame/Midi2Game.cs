@@ -56,9 +56,6 @@ namespace MidiToGame
             { 1, (byte)ConsoleKey.R }
         };
 
-        //public byte octaveUpKey = (byte)ConsoleKey.R;
-        //public byte octaveDownKey = (byte)ConsoleKey.F;
-
         public void PressKey(byte key) => keybd_event(key, 0, 0, UIntPtr.Zero);
         public void ReleaseKey(byte key) => keybd_event(key, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
         public async Task Play(string file, CancellationToken token, Dictionary<int, byte> noteToKeyValue, Dictionary<int, byte> octaveKeysValue, int trackNumber = 0)
@@ -132,7 +129,7 @@ namespace MidiToGame
 
             trackNumber = Math.Clamp(trackNumber, 0, midiFile.Events.Count());
 
-            if (trackNumber == 0)
+            if (trackNumber == -1)
             {
                 foreach (var track in midiFile.Events)
                 {
@@ -145,8 +142,6 @@ namespace MidiToGame
             {
                 absoluteTime = ProcessNotes(tempo, notes, ticksPerQuarter, activeNotes, midiFile.Events[trackNumber], cancellationToken);
             }
-
-
 
             return notes;
         }

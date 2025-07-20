@@ -1,4 +1,5 @@
-﻿using NAudio.Midi;
+﻿using Midi2Game;
+using NAudio.Midi;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 
@@ -45,8 +46,7 @@ namespace MidiToGame
         private delegate IntPtr LowLevelKeyboardProc(
        int nCode, IntPtr wParam, IntPtr lParam);
 
-        private static IntPtr HookCallback(
-            int nCode, IntPtr wParam, IntPtr lParam)
+        private static IntPtr HookCallback(int nCode, IntPtr wParam, IntPtr lParam)
         {
             const int WM_KEYDOWN = 0x0100;
 
@@ -80,7 +80,6 @@ namespace MidiToGame
 
         [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
         private static extern IntPtr GetModuleHandle(string lpModuleName);
-
 
         public Main()
         {
@@ -153,10 +152,9 @@ namespace MidiToGame
             }
             else
             {
-
                 var lines = new List<string>();
 
-                using (StreamReader reader = new StreamReader("keys"))
+                using (StreamReader reader = new("keys"))
                 {
                     while (reader.ReadLine() is { } line)
                     {
@@ -441,7 +439,7 @@ namespace MidiToGame
 
         private void listBox1_SelectedIndexChanged(object sender, EventArgs e)
         {
-            Track = 0;
+            Track = -1;
             selectTrackToolStripMenuItem.Text = "All Tracks";
             removeFileToolStripMenuItem.Enabled = true;
             selectTrackToolStripMenuItem.Enabled = true;
@@ -449,10 +447,10 @@ namespace MidiToGame
             if (index == -1) return;
             var midiFile = new MidiFile(FilePaths[index], false);
             tracksComboBox.Items.Clear();
+            tracksComboBox.Items.Add("All Tracks");
             for (int i = 0; i < midiFile.Events.Count(); i++)
             {
-                if (i == 0) tracksComboBox.Items.Add("All Tracks");
-                else tracksComboBox.Items.Add($"Track - {i}");
+                tracksComboBox.Items.Add($"Track - {i}");
             }
         }
 
@@ -462,7 +460,7 @@ namespace MidiToGame
 
             if (selected == null || selected.ToString() == "All Tracks")
             {
-                Track = 0;
+                Track = -1;
                 return;
             }
 
@@ -487,6 +485,12 @@ namespace MidiToGame
                 mapKeyForm.Close();
             };
             mapKeyForm.ShowDialog(this);
+        }
+
+        private void helpToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            var helpForm = new HelpForm();
+            helpForm.ShowDialog(this);
         }
     }
 }
