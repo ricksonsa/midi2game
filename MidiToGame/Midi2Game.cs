@@ -115,7 +115,7 @@ namespace MidiToGame
                                 return;
                             }
 
-                            if (octaveShift > 0 && !token.IsCancellationRequested)
+                            if (octaveShift > 0)
                                 ReleaseKey(octaveKeys[1]);
                             else
                                 ReleaseKey(octaveKeys[0]);
