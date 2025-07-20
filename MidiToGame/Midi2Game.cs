@@ -97,7 +97,7 @@ namespace MidiToGame
 
                         for (int i = 0; i < Math.Abs(octaveShift); i++)
                         {
-                            if (octaveShift > 0)
+                            if (octaveShift > 0 && !token.IsCancellationRequested)
                                 PressKey(octaveKeys[1]);
                             else
                                 PressKey(octaveKeys[0]);
@@ -115,7 +115,7 @@ namespace MidiToGame
                                 return;
                             }
 
-                            if (octaveShift > 0)
+                            if (octaveShift > 0 && !token.IsCancellationRequested)
                                 ReleaseKey(octaveKeys[1]);
                             else
                                 ReleaseKey(octaveKeys[0]);
