@@ -127,7 +127,7 @@ namespace MidiToGame
             var activeNotes = new Dictionary<int, long>();
             long absoluteTime = 0;
 
-            trackNumber = Math.Clamp(trackNumber, 0, midiFile.Events.Count());
+            trackNumber = Math.Clamp(trackNumber, -1, midiFile.Events.Count());
 
             if (trackNumber == -1)
             {
