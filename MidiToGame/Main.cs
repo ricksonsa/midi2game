@@ -328,7 +328,7 @@ namespace MidiToGame
                     Thread.Sleep(600);
                 }
 
-                Midi2GameTask = Midi2Game.Play(file, CancellationTokenSource.Token, noteToKey, octaveKeys, Track);
+                Midi2GameTask = Midi2Game.PlayAsync(file, Track, noteToKey, octaveKeys, CancellationTokenSource.Token);
             }
             else
             {
@@ -341,6 +341,7 @@ namespace MidiToGame
         {
             CancellationTokenSource.Cancel();
             CancellationTokenSource = new CancellationTokenSource();
+            Midi2Game.ReleaseAllKeys();
             HasStopped();
         }
 
