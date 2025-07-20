@@ -49,6 +49,7 @@
             label1 = new Label();
             listBox1 = new ListBox();
             playToolStripMenuItem1 = new ToolStripMenuItem();
+            stopText = new Label();
             menuStrip1.SuspendLayout();
             contextMenuStrip1.SuspendLayout();
             SuspendLayout();
@@ -73,7 +74,7 @@
             // openToolStripMenuItem
             // 
             openToolStripMenuItem.Name = "openToolStripMenuItem";
-            openToolStripMenuItem.Size = new Size(180, 22);
+            openToolStripMenuItem.Size = new Size(148, 22);
             openToolStripMenuItem.Text = "Load File";
             openToolStripMenuItem.Click += openToolStripMenuItem_Click_1;
             // 
@@ -81,21 +82,21 @@
             // 
             removeFileToolStripMenuItem.Enabled = false;
             removeFileToolStripMenuItem.Name = "removeFileToolStripMenuItem";
-            removeFileToolStripMenuItem.Size = new Size(180, 22);
+            removeFileToolStripMenuItem.Size = new Size(148, 22);
             removeFileToolStripMenuItem.Text = "Remove File";
             removeFileToolStripMenuItem.Click += removeFileToolStripMenuItem_Click;
             // 
             // selectProcessToolStripMenuItem
             // 
             selectProcessToolStripMenuItem.Name = "selectProcessToolStripMenuItem";
-            selectProcessToolStripMenuItem.Size = new Size(180, 22);
+            selectProcessToolStripMenuItem.Size = new Size(148, 22);
             selectProcessToolStripMenuItem.Text = "Select Process";
             selectProcessToolStripMenuItem.Click += selectProcessToolStripMenuItem_Click;
             // 
             // mapKeysToolStripMenuItem
             // 
             mapKeysToolStripMenuItem.Name = "mapKeysToolStripMenuItem";
-            mapKeysToolStripMenuItem.Size = new Size(180, 22);
+            mapKeysToolStripMenuItem.Size = new Size(148, 22);
             mapKeysToolStripMenuItem.Text = "Map Keys";
             mapKeysToolStripMenuItem.Click += mapKeysToolStripMenuItem_Click;
             // 
@@ -104,7 +105,7 @@
             selectTrackToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] { tracksComboBox });
             selectTrackToolStripMenuItem.Enabled = false;
             selectTrackToolStripMenuItem.Name = "selectTrackToolStripMenuItem";
-            selectTrackToolStripMenuItem.Size = new Size(180, 22);
+            selectTrackToolStripMenuItem.Size = new Size(148, 22);
             selectTrackToolStripMenuItem.Text = "Select Track";
             // 
             // tracksComboBox
@@ -118,14 +119,14 @@
             // helpToolStripMenuItem
             // 
             helpToolStripMenuItem.Name = "helpToolStripMenuItem";
-            helpToolStripMenuItem.Size = new Size(180, 22);
+            helpToolStripMenuItem.Size = new Size(148, 22);
             helpToolStripMenuItem.Text = "Help";
             helpToolStripMenuItem.Click += helpToolStripMenuItem_Click;
             // 
             // exitToolStripMenuItem
             // 
             exitToolStripMenuItem.Name = "exitToolStripMenuItem";
-            exitToolStripMenuItem.Size = new Size(180, 22);
+            exitToolStripMenuItem.Size = new Size(148, 22);
             exitToolStripMenuItem.Text = "Exit";
             exitToolStripMenuItem.Click += exitToolStripMenuItem_Click;
             // 
@@ -200,12 +201,24 @@
             playToolStripMenuItem1.Size = new Size(149, 22);
             playToolStripMenuItem1.Text = "Play";
             // 
+            // stopText
+            // 
+            stopText.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
+            stopText.AutoSize = true;
+            stopText.Location = new Point(322, 415);
+            stopText.Name = "stopText";
+            stopText.Size = new Size(132, 15);
+            stopText.TabIndex = 3;
+            stopText.Text = "Press backspace to stop";
+            stopText.Visible = false;
+            // 
             // Main
             // 
             AllowDrop = true;
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(466, 439);
+            Controls.Add(stopText);
             Controls.Add(listBox1);
             Controls.Add(label1);
             Controls.Add(menuStrip1);
@@ -242,5 +255,6 @@
         private ToolStripMenuItem removeFileToolStripMenuItem;
         private ToolStripMenuItem selectTrackToolStripMenuItem;
         private ToolStripComboBox tracksComboBox;
+        private Label stopText;
     }
 }

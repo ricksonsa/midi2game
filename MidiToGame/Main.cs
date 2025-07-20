@@ -54,8 +54,8 @@ namespace MidiToGame
             {
                 int vkCode = Marshal.ReadInt32(lParam);
 
-                // Detect Escape key
-                if (vkCode == (int)Keys.Escape)
+                // Detect Backspace key
+                if (vkCode == (int)Keys.Back)
                 {
                     Main.instance.Stop();
                 }
@@ -298,6 +298,7 @@ namespace MidiToGame
         {
             IsPlaying = true;
             playToolStripMenuItem.Text = "Stop";
+            stopText.Visible = true;
         }
 
         private void HasStopped()
@@ -305,12 +306,19 @@ namespace MidiToGame
             Text = $"Midi2Game";
             IsPlaying = false;
             playToolStripMenuItem.Text = "Play";
+            stopText.Visible = false;
         }
 
         private void Play(string file)
         {
             if (!IsPlaying)
             {
+                if (SelectedProcess == null)
+                {
+                    SelectProcessPrompt();
+                    return;
+                }
+
                 Text = $"Midi2Game - Playing {Path.GetFileName(file)}";
                 HasStarted();
 
@@ -374,6 +382,11 @@ namespace MidiToGame
         }
 
         private void selectProcessToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            SelectProcessPrompt();
+        }
+
+        private void SelectProcessPrompt()
         {
             var selectProcessForm = new SelectProcessForm();
             selectProcessForm.OnProcessSelected += (file, e) =>

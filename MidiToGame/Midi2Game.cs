@@ -89,7 +89,11 @@ namespace MidiToGame
                     var task = Task.Run(async () =>
                     {
                         await Task.Delay((int)startMs, token);
-                        if (token.IsCancellationRequested) return;
+                        if (token.IsCancellationRequested)
+                        {
+                            ReleaseAllKeys();
+                            return;
+                        }
 
                         for (int i = 0; i < Math.Abs(octaveShift); i++)
                         {
@@ -105,7 +109,12 @@ namespace MidiToGame
 
                         for (int i = 0; i < Math.Abs(octaveShift); i++)
                         {
-                            if (token.IsCancellationRequested) return;
+                            if (token.IsCancellationRequested)
+                            {
+                                ReleaseAllKeys();
+                                return;
+                            }
+
                             if (octaveShift > 0)
                                 ReleaseKey(octaveKeys[1]);
                             else
@@ -118,6 +127,29 @@ namespace MidiToGame
                 await Task.WhenAll(tasks);
             }
             catch (TaskCanceledException) { }
+        }
+
+        private void ReleaseAllKeys()
+        {
+
+            foreach (var d_key in noteToKey.Keys)
+            {
+                try
+                {
+                    ReleaseKey(noteToKey[d_key]);
+
+                }
+                catch (Exception) { }
+            }
+
+            foreach (var d_key in octaveKeys.Keys)
+            {
+                try
+                {
+                    ReleaseKey(octaveKeys[d_key]);
+                }
+                catch (Exception) { }
+            }
         }
 
         public List<(double startMs, double durationMs, int noteNumber)> ExtractNotes(MidiFile midiFile, double tempo, int trackNumber, CancellationToken cancellationToken)
