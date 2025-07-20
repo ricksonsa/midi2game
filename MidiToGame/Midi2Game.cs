@@ -58,7 +58,7 @@ namespace MidiToGame
 
         public void PressKey(byte key) => keybd_event(key, 0, 0, UIntPtr.Zero);
         public void ReleaseKey(byte key) => keybd_event(key, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
-        public async Task Play(string file, CancellationToken token, Dictionary<int, byte> noteToKeyValue, Dictionary<int, byte> octaveKeysValue, int trackNumber = 0)
+        public async Task Play(string file, CancellationToken token, Dictionary<int, byte> noteToKeyValue, Dictionary<int, byte> octaveKeysValue, int trackNumber = -1)
         {
             try
             {

@@ -9,7 +9,7 @@ namespace MidiToGame
     {
         public static Main instance;
         private List<string> FilePaths = [];
-        public int Track = 0;
+        public int Track = -1;
         Process? SelectedProcess;
         Midi2Game Midi2Game = new();
         Task Midi2GameTask;
@@ -117,8 +117,6 @@ namespace MidiToGame
                     GetModuleHandle(curModule.ModuleName), 0);
             }
         }
-
-
         private void CreateSongsFileOrLoadIt()
         {
 
