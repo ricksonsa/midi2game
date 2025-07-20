@@ -1,5 +1,4 @@
 ﻿using NAudio.Midi;
-using System.Diagnostics;
 using System.Runtime.InteropServices;
 
 namespace MidiToGame
@@ -102,9 +101,7 @@ namespace MidiToGame
             var notes = ExtractNotes(midiFile, tempo, trackNumber, token);
 
             const int baseNote = 60; // Middle C
-            const int lagMs = 20;
 
-            var stopwatch = Stopwatch.StartNew();
             var tasks = new List<Task>();
             var pressedKeys = new HashSet<byte>();
             var pressedKeysLock = new object();
@@ -127,10 +124,8 @@ namespace MidiToGame
                 {
                     try
                     {
-                        double playTime = startMs - lagMs;
-                        double delay = playTime - stopwatch.Elapsed.TotalMilliseconds;
-                        if (delay > 0)
-                            await Task.Delay((int)delay, token);
+                        if (startMs > 0)
+                            await Task.Delay((int)startMs, token);
 
                         // Shift octave
                         for (int i = 0; i < Math.Abs(octaveShift); i++)
@@ -139,14 +134,14 @@ namespace MidiToGame
 
                             if (octaveShift > 0)
                             {
-                                ReleaseKey(octaveKeys[0]);
-                                ReleaseKey(octaveKeys[1]);
                                 PressKey(octaveKeys[1]);
+                                await Task.Delay(10);
+                                ReleaseKey(octaveKeys[1]);
                             }
                             else if (octaveShift < 0)
                             {
-                                ReleaseKey(octaveKeys[1]);
                                 ReleaseKey(octaveKeys[0]);
+                                await Task.Delay(10);
                                 PressKey(octaveKeys[0]);
                             }
                         }
@@ -159,23 +154,30 @@ namespace MidiToGame
                         }
 
                         await Task.Delay((int)durationMs, token);
-
                         ReleaseKey(key);
+
                         lock (pressedKeysLock)
                         {
                             pressedKeys.Remove(key);
                         }
 
-                        // Revert octave
-                        for (int i = 0; i < Math.Abs(octaveShift); i++)
-                        {
-                            if (token.IsCancellationRequested) return;
+                        //// Revert octave
+                        //for (int i = 0; i < Math.Abs(octaveShift); i++)
+                        //{
+                        //    if (token.IsCancellationRequested) return;
 
-                            if (octaveShift > 0)
-                                ReleaseKey(octaveKeys[1]);
-                            else if (octaveShift < 0)
-                                ReleaseKey(octaveKeys[0]);
-                        }
+                        //    if (octaveShift > 0)
+                        //    {
+                        //        ReleaseKey(octaveKeys[1]);
+                        //        PressKey(octaveKeys[0]);
+                        //    }
+
+                        //    else if (octaveShift < 0)
+                        //    {
+                        //        ReleaseKey(octaveKeys[0]);
+                        //        PressKey(octaveKeys[0]);
+                        //    }
+                        //}
                     }
                     catch (OperationCanceledException)
                     {
@@ -270,7 +272,7 @@ namespace MidiToGame
             return notes;
         }
 
-        const double MinResonanceMs = 2000;  // minimum realistic key press duration
+        const double MinResonanceMs = 500;  // minimum realistic key press duration
         const double ResonanceExtensionMs = 3000; // amount to add to short notes
 
         private static long ProcessNotes(
