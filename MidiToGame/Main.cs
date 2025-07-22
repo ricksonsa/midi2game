@@ -81,8 +81,6 @@ namespace MidiToGame
         [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
         private static extern IntPtr GetModuleHandle(string lpModuleName);
 
-        [DllImport("user32.dll")]
-        private static extern IntPtr GetForegroundWindow();
 
         public Main()
         {
@@ -117,29 +115,6 @@ namespace MidiToGame
             {
                 return SetWindowsHookEx(WH_KEYBOARD_LL, proc,
                     GetModuleHandle(curModule.ModuleName), 0);
-            }
-        }
-        private async Task MonitorProcessFocusAsync(Process process, CancellationToken cancellationToken)
-        {
-            // Wait for the window to be ready
-            while (process.MainWindowHandle == IntPtr.Zero && !process.HasExited)
-            {
-                await Task.Delay(100, cancellationToken);
-                process.Refresh(); // Update MainWindowHandle
-            }
-
-            if (process.HasExited)
-                return;
-
-            IntPtr processHandle = process.MainWindowHandle;
-            bool wasFocused = false;
-
-            while (!process.HasExited && !cancellationToken.IsCancellationRequested)
-            {
-                IntPtr foreground = GetForegroundWindow();
-                bool isFocused = foreground == processHandle;
-                if (!isFocused) Stop();
-                await Task.Delay(200, cancellationToken);
             }
         }
 
@@ -355,24 +330,10 @@ namespace MidiToGame
                 }
 
                 Midi2GameTask = Midi2Game.PlayAsync(file, Track, noteToKey, octaveKeys, CancellationTokenSource.Token);
-                _ = MonitorFocus(CancellationTokenSource.Token);
             }
             else
             {
                 Stop();
-            }
-        }
-
-        public async Task MonitorFocus(CancellationToken token)
-        {
-            if (SelectedProcess is null) return;
-            try
-            {
-                await MonitorProcessFocusAsync(SelectedProcess, token);
-            }
-            catch (OperationCanceledException)
-            {
-                Console.WriteLine("Monitoring cancelled.");
             }
         }
 
@@ -418,7 +379,20 @@ namespace MidiToGame
             FilePaths.Add(filePath);
             listBox1.Items.Add(Path.GetFileName(filePath));
 
-            File.WriteAllText("files", string.Join(Environment.NewLine, FilePaths));
+            SaveFile();
+        }
+
+        private void SaveFile()
+        {
+            File.Delete("files");
+            using (StreamWriter writer = new("files"))
+            {
+
+                foreach (string line in FilePaths)
+                {
+                    writer.WriteLine(line);
+                }
+            }
         }
 
         private void selectProcessToolStripMenuItem_Click(object sender, EventArgs e)
@@ -436,12 +410,6 @@ namespace MidiToGame
                 selectProcessForm.Close();
             };
             selectProcessForm.ShowDialog(this);
-        }
-
-        private void SelectProcessForm_OnProcessSelected(object? sender, string e)
-        {
-            if (sender is null) return;
-            SelectedProcess = Process.GetProcessesByName(sender.ToString()).FirstOrDefault();
         }
 
         private void listBox1_DragDrop(object sender, DragEventArgs e)
@@ -523,6 +491,8 @@ namespace MidiToGame
             if (index == -1) return;
             listBox1.Items.RemoveAt(index);
             FilePaths.RemoveAt(index);
+
+            SaveFile();
         }
 
         private void mapKeysToolStripMenuItem_Click(object sender, EventArgs e)
