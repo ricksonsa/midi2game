@@ -101,8 +101,6 @@ namespace MidiToGame
             const int baseNote = 60;
 
             var tasks = new List<Task>();
-            var pressedKeys = new HashSet<byte>();
-            var pressedKeysLock = new object();
 
             await ResetOctavePosition();
 
@@ -136,21 +134,13 @@ namespace MidiToGame
                             }
                         }
 
-                        lock (pressedKeysLock)
-                        {
-                            ReleaseKey(key);
-                            PressKey(key);
-                            pressedKeys.Add(key);
-                        }
+                        ReleaseKey(key);
+                        await Task.Delay(60);
+                        PressKey(key);
 
                         var duration = (int)durationMs < (int)MinResonanceMs ? (int)ResonanceExtensionMs : (int)durationMs;
                         await Task.Delay(duration, token);
-                        //ReleaseKey(key);
 
-                        lock (pressedKeysLock)
-                        {
-                            pressedKeys.Remove(key);
-                        }
                     }
                     catch (OperationCanceledException) { }
                     catch (Exception ex) { Debug.WriteLine($"Note task error: {ex.Message}"); }
@@ -222,13 +212,11 @@ namespace MidiToGame
                     if (activeNotes.TryGetValue(noteEvent.NoteNumber, out var startTime))
                     {
                         double startMs = (startTime * tempo) / (ticksPerQuarter * 1000.0);
+                        startMs = Math.Round(startMs / 10.0) * 10.0;
                         double endMs = (absoluteTime * tempo) / (ticksPerQuarter * 1000.0);
                         double durationMs = endMs - startMs;
 
-                        if (durationMs < MinResonanceMs)
-                            durationMs += ResonanceExtensionMs;
-
-                        notes.Add((startMs, Math.Max(1, durationMs), noteEvent.NoteNumber));
+                        notes.Add((startMs, Math.Max(durationMs, 50.0), noteEvent.NoteNumber));
                         activeNotes.Remove(noteEvent.NoteNumber);
                     }
                 }
