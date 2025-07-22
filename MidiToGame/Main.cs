@@ -42,9 +42,9 @@ namespace MidiToGame
             { 0, (byte)ConsoleKey.F },
             { 1, (byte)ConsoleKey.R },
         };
+        private Dictionary<int, bool> _selectedTracks = [];
 
-        private delegate IntPtr LowLevelKeyboardProc(
-       int nCode, IntPtr wParam, IntPtr lParam);
+        private delegate IntPtr LowLevelKeyboardProc(int nCode, IntPtr wParam, IntPtr lParam);
 
         private static IntPtr HookCallback(int nCode, IntPtr wParam, IntPtr lParam)
         {
@@ -81,6 +81,9 @@ namespace MidiToGame
         [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
         private static extern IntPtr GetModuleHandle(string lpModuleName);
 
+        [DllImport("user32.dll")]
+        private static extern IntPtr GetForegroundWindow();
+
         public Main()
         {
             instance = this;
@@ -98,7 +101,6 @@ namespace MidiToGame
             CreateSongsFileOrLoadIt();
 
             _hookID = SetHook(_proc);
-
         }
 
         // Unhook when form closes
@@ -117,6 +119,30 @@ namespace MidiToGame
                     GetModuleHandle(curModule.ModuleName), 0);
             }
         }
+        private async Task MonitorProcessFocusAsync(Process process, CancellationToken cancellationToken)
+        {
+            // Wait for the window to be ready
+            while (process.MainWindowHandle == IntPtr.Zero && !process.HasExited)
+            {
+                await Task.Delay(100, cancellationToken);
+                process.Refresh(); // Update MainWindowHandle
+            }
+
+            if (process.HasExited)
+                return;
+
+            IntPtr processHandle = process.MainWindowHandle;
+            bool wasFocused = false;
+
+            while (!process.HasExited && !cancellationToken.IsCancellationRequested)
+            {
+                IntPtr foreground = GetForegroundWindow();
+                bool isFocused = foreground == processHandle;
+                if (!isFocused) Stop();
+                await Task.Delay(200, cancellationToken);
+            }
+        }
+
         private void CreateSongsFileOrLoadIt()
         {
 
@@ -329,12 +355,25 @@ namespace MidiToGame
                 }
 
                 Midi2GameTask = Midi2Game.PlayAsync(file, Track, noteToKey, octaveKeys, CancellationTokenSource.Token);
+                _ = MonitorFocus(CancellationTokenSource.Token);
             }
             else
             {
                 Stop();
             }
+        }
 
+        public async Task MonitorFocus(CancellationToken token)
+        {
+            if (SelectedProcess is null) return;
+            try
+            {
+                await MonitorProcessFocusAsync(SelectedProcess, token);
+            }
+            catch (OperationCanceledException)
+            {
+                Console.WriteLine("Monitoring cancelled.");
+            }
         }
 
         private void Stop()
@@ -452,31 +491,30 @@ namespace MidiToGame
         private void listBox1_SelectedIndexChanged(object sender, EventArgs e)
         {
             Track = -1;
-            selectTrackToolStripMenuItem.Text = "All Tracks";
-            removeFileToolStripMenuItem.Enabled = true;
-            selectTrackToolStripMenuItem.Enabled = true;
-            var index = listBox1.SelectedIndex;
-            if (index == -1) return;
-            var midiFile = new MidiFile(FilePaths[index], false);
-            tracksComboBox.Items.Clear();
-            tracksComboBox.Items.Add("All Tracks");
-            for (int i = 0; i < midiFile.Events.Count(); i++)
-            {
-                tracksComboBox.Items.Add($"Track - {i}");
-            }
-        }
+            _selectedTracks = [];
 
-        private void tracksComboBox_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            var selected = tracksComboBox.SelectedItem;
-
-            if (selected == null || selected.ToString() == "All Tracks")
+            if (listBox1.SelectedItems.Count == 0)
             {
-                Track = -1;
+                removeFileToolStripMenuItem.Enabled = false;
+                tracksToolStripMenuItem.Enabled = false;
+                playToolStripMenuItem.Enabled = false;
+                removeToolStripMenuItem.Enabled = false;
                 return;
             }
 
-            Track = int.Parse(selected.ToString()!.Split("- ")[1]);
+            removeToolStripMenuItem.Enabled = true;
+            playToolStripMenuItem.Enabled = true;
+            removeFileToolStripMenuItem.Enabled = true;
+            tracksToolStripMenuItem.Enabled = true;
+
+            var index = listBox1.SelectedIndex;
+            if (index == -1) return;
+            var midiFile = new MidiFile(FilePaths[index], false);
+
+            for (int i = 0; i < midiFile.Events.Count(); i++)
+            {
+                _selectedTracks[i] = true;
+            }
         }
 
         private void removeFileToolStripMenuItem_Click(object sender, EventArgs e)
@@ -502,7 +540,41 @@ namespace MidiToGame
         private void helpToolStripMenuItem_Click(object sender, EventArgs e)
         {
             var helpForm = new HelpForm();
-            helpForm.ShowDialog(this);
+            helpForm.Show(this);
+        }
+
+        private void tracksToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            var index = listBox1.SelectedIndex;
+            if (index == -1) return;
+
+            var trackForm = new TrackForm(_selectedTracks);
+
+            // Center child on parent (this)
+            trackForm.StartPosition = FormStartPosition.Manual;
+            trackForm.Location = new Point(
+                this.Location.X + (this.Width - trackForm.Width) / 2,
+                this.Location.Y + (this.Height - trackForm.Height) / 2
+            );
+
+            trackForm.OnTrackSelected += (tracks, e) =>
+            {
+                _selectedTracks = tracks as Dictionary<int, bool>;
+            };
+
+            trackForm.ShowDialog(this); // optional: sets owner
+
+        }
+
+        private void listBox1_DoubleClick(object sender, EventArgs e)
+        {
+            playToolStripMenuItem_Click(sender, e);
+        }
+
+        private void removeToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (listBox1.SelectedIndex == -1) return;
+            removeFileToolStripMenuItem_Click(sender, e);
         }
     }
 }

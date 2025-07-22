@@ -1,4 +1,5 @@
 ﻿using NAudio.Midi;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 
 namespace MidiToGame
@@ -28,7 +29,7 @@ namespace MidiToGame
             return notes
                 .GroupBy(n => n.noteNumber)
                 .OrderByDescending(g => g.Count())
-                .ThenBy(g => g.Key) // prefer lower note in tie
+                .ThenBy(g => g.Key)
                 .First()
                 .Key;
         }
@@ -48,13 +49,10 @@ namespace MidiToGame
                 foreach (var midiEvent in track)
                 {
                     if (midiEvent is TempoEvent tempoEvent)
-                    {
                         return tempoEvent.MicrosecondsPerQuarterNote;
-                    }
                 }
             }
-
-            return 500000.0; // Default tempo if none is specified (120 BPM)
+            return 500000.0; // Default tempo (120 BPM)
         }
 
         [DllImport("user32.dll")]
@@ -97,21 +95,19 @@ namespace MidiToGame
             octaveKeys = octaveKeysValue;
 
             var midiFile = new MidiFile(file, false);
-            double tempo = GetTempo(midiFile); // microseconds per quarter note
+            double tempo = GetTempo(midiFile);
             var notes = ExtractNotes(midiFile, tempo, trackNumber, token);
 
-            const int baseNote = 60; // Middle C
+            const int baseNote = 60;
 
             var tasks = new List<Task>();
             var pressedKeys = new HashSet<byte>();
             var pressedKeysLock = new object();
 
-            // try reset octave to middle
             await ResetOctavePosition();
 
             foreach (var (startMs, durationMs, noteNumber) in notes)
             {
-
                 int semitoneOffset = noteNumber - baseNote;
                 int octaveShift = semitoneOffset / 12;
                 int noteInOctave = semitoneOffset % 12;
@@ -120,130 +116,67 @@ namespace MidiToGame
                 if (!noteToKey.TryGetValue(noteInOctave, out byte key))
                     continue;
 
-                var task = Task.Run(async () =>
+                var playNoteTask = Task.Run(async () =>
                 {
                     try
                     {
-                        if (startMs > 0)
-                            await Task.Delay((int)startMs, token);
+                        if (startMs > 0) await Task.Delay((int)startMs, token);
 
-                        // Shift octave
                         for (int i = 0; i < Math.Abs(octaveShift); i++)
                         {
                             if (token.IsCancellationRequested) return;
 
                             if (octaveShift > 0)
                             {
-                                PressKey(octaveKeys[1]);
-                                await Task.Delay(10);
-                                ReleaseKey(octaveKeys[1]);
+                                PressKey(octaveKeys[1]); await Task.Delay(5); ReleaseKey(octaveKeys[1]);
                             }
-                            else if (octaveShift < 0)
+                            else
                             {
-                                ReleaseKey(octaveKeys[0]);
-                                await Task.Delay(10);
-                                PressKey(octaveKeys[0]);
+                                PressKey(octaveKeys[0]); await Task.Delay(5); ReleaseKey(octaveKeys[0]);
                             }
                         }
 
                         lock (pressedKeysLock)
                         {
-                            ReleaseKey(key); // always release before pressing to retrigger
+                            ReleaseKey(key);
                             PressKey(key);
                             pressedKeys.Add(key);
                         }
 
-                        await Task.Delay((int)durationMs, token);
-                        ReleaseKey(key);
+                        var duration = (int)durationMs < (int)MinResonanceMs ? (int)ResonanceExtensionMs : (int)durationMs;
+                        await Task.Delay(duration, token);
+                        //ReleaseKey(key);
 
                         lock (pressedKeysLock)
                         {
                             pressedKeys.Remove(key);
                         }
-
-                        //// Revert octave
-                        //for (int i = 0; i < Math.Abs(octaveShift); i++)
-                        //{
-                        //    if (token.IsCancellationRequested) return;
-
-                        //    if (octaveShift > 0)
-                        //    {
-                        //        ReleaseKey(octaveKeys[1]);
-                        //        PressKey(octaveKeys[0]);
-                        //    }
-
-                        //    else if (octaveShift < 0)
-                        //    {
-                        //        ReleaseKey(octaveKeys[0]);
-                        //        PressKey(octaveKeys[0]);
-                        //    }
-                        //}
                     }
-                    catch (OperationCanceledException)
-                    {
-                        // Task canceled, clean exit
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"Note task error: {ex.Message}");
-                    }
+                    catch (OperationCanceledException) { }
+                    catch (Exception ex) { Debug.WriteLine($"Note task error: {ex.Message}"); }
                 }, token);
 
-                tasks.Add(task);
+                tasks.Add(playNoteTask);
             }
 
-            try
-            {
-                await Task.WhenAll(tasks);
-            }
-            catch (OperationCanceledException)
-            {
-                // Swallow expected cancellation
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Playback error: {ex.Message}");
-            }
-            finally
-            {
-                ReleaseAllKeys();
-            }
+            try { await Task.WhenAll(tasks); }
+            catch (OperationCanceledException) { }
+            catch (Exception ex) { Debug.WriteLine($"Playback error: {ex.Message}"); }
+            finally { ReleaseAllKeys(); }
         }
 
         private async Task ResetOctavePosition()
         {
-            PressKey(octaveKeys[0]);
-            await Task.Delay(100);
-            ReleaseKey(octaveKeys[0]);
-            await Task.Delay(100);
-            PressKey(octaveKeys[0]);
-            await Task.Delay(100);
-            PressKey(octaveKeys[1]);
-            await Task.Delay(100);
-            PressKey(octaveKeys[1]);
+            for (int i = 0; i < 3; i++)
+            {
+                PressKey(octaveKeys[0]); await Task.Delay(100); ReleaseKey(octaveKeys[0]); await Task.Delay(100);
+            }
         }
 
         public void ReleaseAllKeys()
         {
-
-            foreach (var d_key in noteToKey.Keys)
-            {
-                try
-                {
-                    ReleaseKey(noteToKey[d_key]);
-
-                }
-                catch (Exception) { }
-            }
-
-            foreach (var d_key in octaveKeys.Keys)
-            {
-                try
-                {
-                    ReleaseKey(octaveKeys[d_key]);
-                }
-                catch (Exception) { }
-            }
+            foreach (var key in noteToKey.Values) { try { ReleaseKey(key); } catch { } }
+            foreach (var key in octaveKeys.Values) { try { ReleaseKey(key); } catch { } }
         }
 
         public List<(double startMs, double durationMs, int noteNumber)> ExtractNotes(MidiFile midiFile, double tempo, int trackNumber, CancellationToken cancellationToken)
@@ -260,7 +193,6 @@ namespace MidiToGame
                 foreach (var track in midiFile.Events)
                 {
                     if (cancellationToken.IsCancellationRequested) continue;
-
                     absoluteTime = ProcessNotes(tempo, notes, ticksPerQuarter, activeNotes, track, cancellationToken);
                 }
             }
@@ -272,8 +204,8 @@ namespace MidiToGame
             return notes;
         }
 
-        const double MinResonanceMs = 500;  // minimum realistic key press duration
-        const double ResonanceExtensionMs = 3000; // amount to add to short notes
+        const double MinResonanceMs = 2050;
+        const double ResonanceExtensionMs = 3000;
 
         private static long ProcessNotes(
             double tempo,
@@ -288,42 +220,30 @@ namespace MidiToGame
             foreach (var midiEvent in track)
             {
                 if (cancellationToken.IsCancellationRequested) continue;
-
                 absoluteTime += midiEvent.DeltaTime;
 
                 if (midiEvent is NoteOnEvent noteOn && noteOn.Velocity > 0)
                 {
-                    // Mark note start
                     activeNotes[noteOn.NoteNumber] = absoluteTime;
                 }
-                else if (midiEvent is NoteEvent noteEvent)
+                else if (midiEvent is NoteEvent noteEvent && (noteEvent.CommandCode == MidiCommandCode.NoteOff || (noteEvent is NoteOnEvent on && on.Velocity == 0)))
                 {
-                    bool isNoteOff = noteEvent.CommandCode == MidiCommandCode.NoteOff
-                                     || (noteEvent is NoteOnEvent offEvent && offEvent.Velocity == 0);
-
-                    if (isNoteOff)
+                    if (activeNotes.TryGetValue(noteEvent.NoteNumber, out var startTime))
                     {
-                        if (activeNotes.TryGetValue(noteEvent.NoteNumber, out var startTime))
-                        {
-                            double startMs = (startTime * tempo) / (ticksPerQuarter * 1000.0);
-                            double endMs = (absoluteTime * tempo) / (ticksPerQuarter * 1000.0);
-                            double durationMs = endMs - startMs;
+                        double startMs = (startTime * tempo) / (ticksPerQuarter * 1000.0);
+                        double endMs = (absoluteTime * tempo) / (ticksPerQuarter * 1000.0);
+                        double durationMs = endMs - startMs;
 
-                            if (durationMs < MinResonanceMs)
-                            {
-                                durationMs += ResonanceExtensionMs;
-                            }
+                        if (durationMs < MinResonanceMs)
+                            durationMs += ResonanceExtensionMs;
 
-                            durationMs = Math.Max(1, durationMs); // ensure duration is valid
-                            notes.Add((startMs, durationMs, noteEvent.NoteNumber));
-                            activeNotes.Remove(noteEvent.NoteNumber);
-                        }
+                        notes.Add((startMs, Math.Max(1, durationMs), noteEvent.NoteNumber));
+                        activeNotes.Remove(noteEvent.NoteNumber);
                     }
                 }
             }
 
             return absoluteTime;
         }
-
     }
 }
