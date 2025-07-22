@@ -32,3 +32,8 @@ If you find this project useful or would like to help me improve it further, you
 Thanks again for your support and feedback
 
 https://www.patreon.com/ricksonsa
+
+
+## Download
+
+[Download latest build here](https://github.com/ricksonsa/midi2game/releases/latest)
