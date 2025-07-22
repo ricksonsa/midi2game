@@ -86,7 +86,7 @@ namespace MidiToGame
 
         public async Task PlayAsync(
             string file,
-            int trackNumber,
+            Dictionary<int, bool> tracks,
             Dictionary<int, byte> noteToKeyValue,
             Dictionary<int, byte> octaveKeysValue,
             CancellationToken token)
@@ -96,7 +96,7 @@ namespace MidiToGame
 
             var midiFile = new MidiFile(file, false);
             double tempo = GetTempo(midiFile);
-            var notes = ExtractNotes(midiFile, tempo, trackNumber, token);
+            var notes = ExtractNotes(midiFile, tempo, tracks.Where(t => t.Value).Select(t => t.Key), token);
 
             const int baseNote = 60;
 
@@ -179,26 +179,17 @@ namespace MidiToGame
             foreach (var key in octaveKeys.Values) { try { ReleaseKey(key); } catch { } }
         }
 
-        public List<(double startMs, double durationMs, int noteNumber)> ExtractNotes(MidiFile midiFile, double tempo, int trackNumber, CancellationToken cancellationToken)
+        public List<(double startMs, double durationMs, int noteNumber)> ExtractNotes(MidiFile midiFile, double tempo, IEnumerable<int> tracks, CancellationToken cancellationToken)
         {
             var notes = new List<(double, double, int)>();
             var ticksPerQuarter = midiFile.DeltaTicksPerQuarterNote;
             var activeNotes = new Dictionary<int, long>();
             long absoluteTime = 0;
 
-            trackNumber = Math.Clamp(trackNumber, -1, midiFile.Events.Count());
-
-            if (trackNumber == -1)
+            for (int i = 0; i < midiFile.Events.Count(); i++)
             {
-                foreach (var track in midiFile.Events)
-                {
-                    if (cancellationToken.IsCancellationRequested) continue;
-                    absoluteTime = ProcessNotes(tempo, notes, ticksPerQuarter, activeNotes, track, cancellationToken);
-                }
-            }
-            else
-            {
-                absoluteTime = ProcessNotes(tempo, notes, ticksPerQuarter, activeNotes, midiFile.Events[trackNumber], cancellationToken);
+                if (!tracks.Contains(i)) continue;
+                absoluteTime = ProcessNotes(tempo, notes, ticksPerQuarter, activeNotes, midiFile.Events[i], cancellationToken);
             }
 
             return notes;

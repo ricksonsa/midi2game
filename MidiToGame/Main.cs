@@ -9,7 +9,6 @@ namespace MidiToGame
     {
         public static Main instance;
         private List<string> FilePaths = [];
-        public int Track = -1;
         Process? SelectedProcess;
         Midi2Game Midi2Game = new();
         Task Midi2GameTask;
@@ -329,7 +328,7 @@ namespace MidiToGame
                     Thread.Sleep(600);
                 }
 
-                Midi2GameTask = Midi2Game.PlayAsync(file, Track, noteToKey, octaveKeys, CancellationTokenSource.Token);
+                Midi2GameTask = Midi2Game.PlayAsync(file, _selectedTracks, noteToKey, octaveKeys, CancellationTokenSource.Token);
             }
             else
             {
@@ -458,7 +457,6 @@ namespace MidiToGame
 
         private void listBox1_SelectedIndexChanged(object sender, EventArgs e)
         {
-            Track = -1;
             _selectedTracks = [];
 
             if (listBox1.SelectedItems.Count == 0)
