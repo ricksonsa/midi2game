@@ -116,6 +116,8 @@ namespace MidiToGame
 
                 var playNoteTask = Task.Run(async () =>
                 {
+                    if (token.IsCancellationRequested) return;
+
                     try
                     {
                         if (startMs > 0) await Task.Delay((int)startMs, token);
@@ -152,7 +154,7 @@ namespace MidiToGame
             try { await Task.WhenAll(tasks); }
             catch (OperationCanceledException) { }
             catch (Exception ex) { Debug.WriteLine($"Playback error: {ex.Message}"); }
-            finally { ReleaseAllKeys(); }
+            finally { if (token.IsCancellationRequested) ReleaseAllKeys(); }
         }
 
         private async Task ResetOctavePosition()
@@ -212,7 +214,6 @@ namespace MidiToGame
                     if (activeNotes.TryGetValue(noteEvent.NoteNumber, out var startTime))
                     {
                         double startMs = (startTime * tempo) / (ticksPerQuarter * 1000.0);
-                        startMs = Math.Round(startMs / 10.0) * 10.0;
                         double endMs = (absoluteTime * tempo) / (ticksPerQuarter * 1000.0);
                         double durationMs = endMs - startMs;
 
